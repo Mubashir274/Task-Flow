@@ -1,0 +1,277 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TaskFlow - Productivity Dashboard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif}
+body{background:#f4f5fa;color:#25283d}
+.app{display:flex;min-height:100vh}
+.sidebar{width:230px;background:#20243b;color:white;padding:28px 20px}
+.logo{font-size:25px;font-weight:bold;color:#8f83ff;margin-bottom:45px}
+.logo span{color:white}
+.side-title{color:#999db6;font-size:11px;margin:25px 10px 12px}
+.nav{display:block;width:100%;text-align:left;border:0;background:none;color:#c9cbe0;padding:13px 12px;border-radius:9px;cursor:pointer;margin:5px 0;font-size:14px}
+.nav.active,.nav:hover{background:#373c5d;color:white}
+.main{flex:1;padding:32px;min-width:0}
+.top{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap;margin-bottom:30px}
+.top h1{font-size:27px}
+.top p{color:#85899e;margin-top:7px;font-size:14px}
+.date{background:white;padding:12px 17px;border-radius:9px;color:#626781;font-size:13px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:17px;margin-bottom:25px}
+.stat{background:white;padding:21px;border-radius:13px;box-shadow:0 4px 15px #20243b08}
+.stat small{color:#8a8da1}
+.stat h2{font-size:30px;margin-top:12px}
+.stat-icon{font-size:22px}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:20px}
+.panel{background:white;padding:22px;border-radius:13px;margin-bottom:20px;box-shadow:0 4px 15px #20243b08}
+.panel-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:20px}
+.panel-head h2{font-size:19px}
+.add-btn{background:#7065e9;color:white;border:0;padding:11px 16px;border-radius:8px;cursor:pointer}
+.add-btn:hover{background:#574bd0}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:17px}
+.filters button{padding:8px 13px;border:0;background:#f0f0f8;border-radius:7px;cursor:pointer;color:#64677c}
+.filters button.active{background:#7065e9;color:white}
+.task{display:flex;align-items:center;gap:12px;padding:15px 0;border-bottom:1px solid #eeeef4}
+.task:last-child{border-bottom:0}
+.task input{width:17px;height:17px;accent-color:#7065e9;cursor:pointer}
+.task-content{flex:1;min-width:0}
+.task-content h3{font-size:14px;overflow-wrap:anywhere}
+.task-content p{font-size:12px;color:#9295a7;margin-top:6px}
+.task.done h3{text-decoration:line-through;color:#999}
+.priority{font-size:11px;padding:5px 8px;border-radius:15px}
+.high{background:#ffe8e8;color:#d34b4b}
+.medium{background:#fff3d8;color:#a77919}
+.low{background:#e5f6ec;color:#39845b}
+.actions{display:flex;gap:7px}
+.actions button{border:0;background:#f0f0f8;padding:7px;border-radius:6px;cursor:pointer}
+.progress{height:9px;background:#eeeeF5;border-radius:10px;overflow:hidden;margin:17px 0}
+.progress-bar{height:100%;background:#7065e9;width:0%;transition:.3s}
+.progress-text{display:flex;justify-content:space-between;font-size:13px;color:#818499}
+.tip{background:#f0efff;padding:17px;border-radius:10px;color:#6157ba;font-size:13px;line-height:1.6}
+.tip strong{display:block;margin-bottom:7px}
+.empty{text-align:center;color:#999;padding:30px 10px;font-size:14px}
+.modal{display:none;position:fixed;inset:0;background:#0008;align-items:center;justify-content:center;padding:15px;z-index:10}
+.modal-box{background:white;width:100%;max-width:420px;padding:25px;border-radius:13px}
+.modal-box h2{margin-bottom:20px}
+.modal-box label{display:block;font-size:13px;margin:13px 0 7px}
+.modal-box input,.modal-box select{width:100%;padding:12px;border:1px solid #ddd;border-radius:7px;outline-color:#7065e9}
+.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}
+.cancel{border:0;background:#eee;padding:11px 16px;border-radius:7px;cursor:pointer}
+footer{text-align:center;color:#999;font-size:12px;margin-top:15px}
+@media(max-width:900px){.layout{grid-template-columns:1fr}.sidebar{width:190px}}
+@media(max-width:600px){.app{display:block}.sidebar{width:100%;padding:18px}.logo{margin-bottom:15px}.side-title{display:none}.main{padding:20px 14px}.top h1{font-size:23px}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sidebar">
+ <div class="logo">Task<span>Flow.</span></div>
+ <div class="side-title">WORKSPACE</div>
+ <button class="nav active" onclick="setFilter('All',this)">▦ &nbsp; Dashboard</button>
+ <button class="nav" onclick="setFilter('Pending',this)">◷ &nbsp; Pending Tasks</button>
+ <button class="nav" onclick="setFilter('Completed',this)">✓ &nbsp; Completed</button>
+ <div class="side-title">PERSONAL</div>
+ <button class="nav" onclick="openModal()">＋ &nbsp; Add New Task</button>
+</aside>
+
+<main class="main">
+ <div class="top">
+  <div>
+   <h1>My Dashboard 👋</h1>
+   <p>Stay organized. Get things done.</p>
+  </div>
+  <div class="date" id="todayDate"></div>
+ </div>
+
+ <div class="stats">
+  <div class="stat"><span class="stat-icon">📋</span><br><small>Total Tasks</small><h2 id="total">0</h2></div>
+  <div class="stat"><span class="stat-icon">⏳</span><br><small>Pending</small><h2 id="pending">0</h2></div>
+  <div class="stat"><span class="stat-icon">✅</span><br><small>Completed</small><h2 id="completed">0</h2></div>
+ </div>
+
+ <div class="layout">
+  <section class="panel">
+   <div class="panel-head">
+    <h2>My Tasks</h2>
+    <button class="add-btn" onclick="openModal()">+ Add Task</button>
+   </div>
+   <div class="filters">
+    <button class="active" onclick="setFilter('All',this)">All</button>
+    <button onclick="setFilter('Pending',this)">Pending</button>
+    <button onclick="setFilter('Completed',this)">Completed</button>
+   </div>
+   <div id="taskList"></div>
+  </section>
+
+  <aside>
+   <section class="panel">
+    <div class="panel-head"><h2>My Progress</h2></div>
+    <h2 id="percent">0%</h2>
+    <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+    <div class="progress-text">
+     <span>Completed</span><span id="progressCount">0 / 0</span>
+    </div>
+   </section>
+   <section class="tip">
+    <strong>💡 Productivity Tip</strong>
+    Break big tasks into smaller steps. Complete one task at a time and keep moving forward!
+   </section>
+  </aside>
+ </div>
+ <footer>TaskFlow © 2026 | Personal Productivity Dashboard</footer>
+</main>
+</div>
+
+<div class="modal" id="taskModal">
+ <div class="modal-box">
+  <h2 id="modalTitle">Add New Task</h2>
+  <label>Task Name</label>
+  <input id="taskName" placeholder="Enter your task...">
+  <label>Due Date</label>
+  <input type="date" id="taskDate">
+  <label>Priority</label>
+  <select id="taskPriority">
+   <option value="High">High</option>
+   <option value="Medium" selected>Medium</option>
+   <option value="Low">Low</option>
+  </select>
+  <div class="modal-actions">
+   <button class="cancel" onclick="closeModal()">Cancel</button>
+   <button class="add-btn" onclick="saveTask()">Save Task</button>
+  </div>
+ </div>
+</div>
+
+<script>
+let tasks=JSON.parse(localStorage.getItem("taskflowTasks")||"[]");
+let currentFilter="All";
+let editingId=null;
+
+document.getElementById("todayDate").textContent=
+ new Date().toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"});
+
+function saveData(){
+ localStorage.setItem("taskflowTasks",JSON.stringify(tasks));
+}
+
+function updateDashboard(){
+ document.getElementById("total").textContent=tasks.length;
+ document.getElementById("pending").textContent=tasks.filter(t=>!t.done).length;
+ document.getElementById("completed").textContent=tasks.filter(t=>t.done).length;
+
+ let done=tasks.filter(t=>t.done).length;
+ let percent=tasks.length?Math.round(done/tasks.length*100):0;
+ document.getElementById("percent").textContent=percent+"%";
+ document.getElementById("progressBar").style.width=percent+"%";
+ document.getElementById("progressCount").textContent=done+" / "+tasks.length;
+
+ displayTasks();
+}
+
+function displayTasks(){
+ let list=document.getElementById("taskList");
+ let filtered=tasks.filter(t=>
+  currentFilter==="All" ||
+  (currentFilter==="Pending"&&!t.done) ||
+  (currentFilter==="Completed"&&t.done)
+ );
+
+ if(!filtered.length){
+  list.innerHTML='<div class="empty">No tasks here yet. Add a task to get started! ✨</div>';
+  return;
+ }
+
+ list.innerHTML=filtered.map(t=>`
+  <div class="task ${t.done?'done':''}">
+   <input type="checkbox" ${t.done?'checked':''} onchange="toggleTask(${t.id})">
+   <div class="task-content">
+    <h3>${escapeHTML(t.name)}</h3>
+    <p>📅 ${t.date||"No due date"}</p>
+   </div>
+   <span class="priority ${t.priority.toLowerCase()}">${t.priority}</span>
+   <div class="actions">
+    <button onclick="editTask(${t.id})">✏️</button>
+    <button onclick="deleteTask(${t.id})">🗑️</button>
+   </div>
+  </div>
+ `).join("");
+}
+
+function escapeHTML(value){
+ return value.replace(/[&<>"']/g,char=>({
+  "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+ }[char]));
+}
+
+function setFilter(filter,button){
+ currentFilter=filter;
+ document.querySelectorAll(".nav,.filters button").forEach(b=>b.classList.remove("active"));
+ button.classList.add("active");
+ displayTasks();
+}
+
+function openModal(){
+ editingId=null;
+ document.getElementById("modalTitle").textContent="Add New Task";
+ document.getElementById("taskName").value="";
+ document.getElementById("taskDate").value="";
+ document.getElementById("taskPriority").value="Medium";
+ document.getElementById("taskModal").style.display="flex";
+}
+
+function closeModal(){
+ document.getElementById("taskModal").style.display="none";
+}
+
+function saveTask(){
+ let name=document.getElementById("taskName").value.trim();
+ if(!name){alert("Please enter a task name.");return;}
+
+ let date=document.getElementById("taskDate").value;
+ let priority=document.getElementById("taskPriority").value;
+
+ if(editingId!==null){
+  let task=tasks.find(t=>t.id===editingId);
+  task.name=name;task.date=date;task.priority=priority;
+ }else{
+  tasks.unshift({id:Date.now(),name,date,priority,done:false});
+ }
+
+ saveData();
+ closeModal();
+ updateDashboard();
+}
+
+function toggleTask(id){
+ let task=tasks.find(t=>t.id===id);
+ task.done=!task.done;
+ saveData();
+ updateDashboard();
+}
+
+function deleteTask(id){
+ if(confirm("Delete this task?")){
+  tasks=tasks.filter(t=>t.id!==id);
+  saveData();
+  updateDashboard();
+ }
+}
+
+function editTask(id){
+ let task=tasks.find(t=>t.id===id);
+ editingId=id;
+ document.getElementById("modalTitle").textContent="Edit Task";
+ document.getElementById("taskName").value=task.name;
+ document.getElementById("taskDate").value=task.date;
+ document.getElementById("taskPriority").value=task.priority;
+ document.getElementById("taskModal").style.display="flex";
+}
+
+updateDashboard();
+</script>
+</body>
+</html>
+```
